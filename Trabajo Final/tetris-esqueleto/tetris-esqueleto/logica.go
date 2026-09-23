@@ -170,7 +170,15 @@ func generarTablero() [constCantFilasTablero][constCantColumnasTablero]string {
 	var tablero [constCantFilasTablero][constCantColumnasTablero]string
 
 	//PROGRAMAR
+	for i := 0; i < constCantFilasTablero; i++ {
+		tablero[i][0] = constSimboloBorde
+		tablero[i][constCantColumnasTablero-1] = constSimboloBorde
 
+	}
+	for i := 0; i < constCantColumnasTablero; i++ {
+		tablero[0][i] = constSimboloBorde
+		tablero[21][i] = constSimboloBorde
+	}
 	return tablero
 }
 
