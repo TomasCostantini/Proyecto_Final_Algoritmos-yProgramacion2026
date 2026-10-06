@@ -177,7 +177,7 @@ func generarTablero() [constCantFilasTablero][constCantColumnasTablero]string {
 	}
 	for i := 0; i < constCantColumnasTablero; i++ {
 		tablero[0][i] = constSimboloBorde
-		tablero[21][i] = constSimboloBorde
+		tablero[constCantFilasTablero-1][i] = constSimboloBorde
 	}
 	return tablero
 }
@@ -311,9 +311,21 @@ func obtenerFormaRotacion(tipoPieza int, rotacion int) [4][constCantColumnasPiez
 func generarNuevaPieza(cantColumnasTablero int) ([4][constCantColumnasPieza]int, int) {
 	var pieza [4][constCantColumnasPieza]int
 
-	//PROGRAMAR
+	// Elegir una pieza aleatoria y obtener su forma inicial.
+	tipo := rand.Intn(7)
+	forma := obtenerFormaRotacion(tipo, 0)
 
-	return pieza, 0
+	// Origen de aparición en el tablero.
+	filaInicio := 1
+	columnaInicio := cantColumnasTablero/2 - 1
+
+	// Convertir las coordenadas locales en posiciones del tablero.
+	for i := 0; i < 4; i++ {
+		pieza[i][constPiezaFila] = forma[i][constPiezaFila] + filaInicio
+		pieza[i][constPiezaCol] = forma[i][constPiezaCol] + columnaInicio
+	}
+
+	return pieza, tipo
 }
 
 // actualizarTablero limpia los símbolos de la pieza activa anterior del tablero
@@ -328,17 +340,35 @@ func actualizarTablero(
 	tablero *[constCantFilasTablero][constCantColumnasTablero]string,
 	piezaActiva [4][constCantColumnasPieza]int,
 ) {
-	//PROGRAMAR
+	// Borrar el dibujo anterior de la pieza activa.
+	for fila := 0; fila < constCantFilasTablero; fila++ {
+		for col := 0; col < constCantColumnasTablero; col++ {
+			if tablero[fila][col] == constSimboloPieza {
+				tablero[fila][col] = constSimboloVacio
+			}
+		}
+	}
+
+	// Dibujar los cuatro bloques en sus posiciones actuales.
+	for i := 0; i < 4; i++ {
+		fila := piezaActiva[i][constPiezaFila]
+		col := piezaActiva[i][constPiezaCol]
+
+		// Comprobar que la posición esté dentro del área jugable.
+		if fila > 0 && fila < constCantFilasTablero-1 && col > 0 && col < constCantColumnasTablero-1 {
+			// Conservar los bordes y los bloques fijos.
+			if tablero[fila][col] == constSimboloVacio {
+				tablero[fila][col] = constSimboloPieza
+			}
+		}
+	}
 }
 
 // FUNCIÓN PROVISTA: usarla para comprobar movimientos, giros y aparición.
 // colisionaConTablero es una función auxiliar que verifica si alguno de los
 // bloques propuestos choca con un borde o un bloque fijo.
 // Las celdas que contienen constSimboloPieza (la propia pieza activa) se ignoran.
-func colisionaConTablero(
-	tablero [constCantFilasTablero][constCantColumnasTablero]string,
-	bloques [4][constCantColumnasPieza]int,
-) bool {
+func colisionaConTablero(tablero [constCantFilasTablero][constCantColumnasTablero]string, bloques [4][constCantColumnasPieza]int) bool {
 	for i := 0; i < 4; i++ {
 		f := bloques[i][constPiezaFila]
 		c := bloques[i][constPiezaCol]
@@ -373,11 +403,24 @@ func calcularNuevaPosicionPieza(
 	direccionFila int,
 	direccionCol int,
 ) bool {
-	//PROGRAMAR
+	// Copiar la pieza para probar el movimiento.
+	nuevaPosicion := *piezaActiva
 
-	return false
+	// Aplicar el desplazamiento a los cuatro bloques.
+	for i := 0; i < 4; i++ {
+		nuevaPosicion[i][constPiezaFila] += direccionFila
+		nuevaPosicion[i][constPiezaCol] += direccionCol
+	}
+
+	// Si la posición propuesta colisiona, cancelar el movimiento.
+	if colisionaConTablero(tablero, nuevaPosicion) {
+		return false
+	}
+
+	// Confirmar el movimiento modificando la pieza original.
+	*piezaActiva = nuevaPosicion
+	return true
 }
-
 // rotarPieza intenta rotar la pieza activa 90° en sentido horario.
 // Recuperar el origen restando al bloque [1] sus coordenadas en la forma actual.
 // Sumar a ese origen las coordenadas de la nueva forma; el bloque [1] no es el origen.
