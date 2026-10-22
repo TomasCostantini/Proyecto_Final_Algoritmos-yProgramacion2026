@@ -42,8 +42,13 @@ const (
 	constPuntos4Lineas = 8
 
 	// Intervalo fijo de caída (ms); el nivel es informativo
-	constIntervaloDescenso = 350
-	constLineasPorNivel    = 10
+	//constIntervaloDescenso = 350
+	constLineasPorNivel = 10
+
+	//Nuevas contantes
+	constIntervaloDescenso = 800
+	constReduccionPorNivel = 60
+	constIntervaloMinimo   = 150
 )
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -70,6 +75,14 @@ func generarEventos() {
 		puntos           int
 		nivel            int
 		lineasEliminadas int
+
+		//nueva variable para bajar el tiempo
+		intervaloDescenso int
+
+		//nuevas variables para mostrar la proxima pieza
+		piezaSiguiente     [4][constCantColumnasPieza]int
+		tipoPiezaSiguiente int
+		nombreSiguiente    string
 	)
 
 	rand.Seed(time.Now().Unix())
@@ -89,6 +102,7 @@ func generarEventos() {
 
 	// Generar primera pieza
 	piezaActiva, tipoPiezaActiva = generarNuevaPieza(constCantColumnasTablero)
+	piezaSiguiente, tipoPiezaSiguiente = generarNuevaPieza(constCantColumnasTablero)
 
 	// Comprobar la aparición antes de dibujar.
 	if verificarFinDeJuego(tablero, piezaActiva) {
@@ -123,8 +137,15 @@ func generarEventos() {
 			rotarPiezaFlag = false
 		}
 
+		//nueva funcion para reducir el tiempo por cada nivel
+		intervaloDescenso = constIntervaloDescenso - (nivel-1)*constReduccionPorNivel
+
+		if intervaloDescenso < constIntervaloMinimo {
+			intervaloDescenso = constIntervaloMinimo
+		}
+
 		// ── Descenso automático con intervalo fijo ─────────────────────
-		if time.Since(ultimoDescenso) >= time.Duration(constIntervaloDescenso)*time.Millisecond {
+		if time.Since(ultimoDescenso) >= time.Duration(intervaloDescenso)*time.Millisecond {
 			ultimoDescenso = time.Now()
 
 			if !calcularNuevaPosicionPieza(tablero, &piezaActiva, 1, 0) {
@@ -133,7 +154,10 @@ func generarEventos() {
 				verificarLineasCompletas(&tablero, &puntos, &lineasEliminadas, &nivel)
 
 				// Generar nueva pieza
-				piezaActiva, tipoPiezaActiva = generarNuevaPieza(constCantColumnasTablero)
+				piezaActiva = piezaSiguiente
+				tipoPiezaActiva = tipoPiezaSiguiente
+
+				piezaSiguiente, tipoPiezaSiguiente = generarNuevaPieza(constCantColumnasTablero)
 				rotacionActual = 0
 				// La pieza nueva no debe sobrescribir bloques ya fijados.
 				if verificarFinDeJuego(tablero, piezaActiva) {
@@ -143,7 +167,22 @@ func generarEventos() {
 				}
 			}
 		}
-
+		switch tipoPiezaSiguiente {
+		case 0:
+			nombreSiguiente = "I"
+		case 1:
+			nombreSiguiente = "O"
+		case 2:
+			nombreSiguiente = "T"
+		case 3:
+			nombreSiguiente = "S"
+		case 4:
+			nombreSiguiente = "Z"
+		case 5:
+			nombreSiguiente = "L"
+		case 6:
+			nombreSiguiente = "J"
+		}
 		// ── Actualizar tablero y enviar al cliente ────────────────────────────
 		actualizarTablero(&tablero, piezaActiva)
 		enviarActualizacionTablero(tablero)
@@ -151,6 +190,7 @@ func generarEventos() {
 			"Puntos: ", puntos,
 			" | Nivel: ", nivel,
 			" | Líneas: ", lineasEliminadas,
+			" | Siguiente: ", nombreSiguiente,
 		))
 
 		// Esperar un ciclo antes del próximo frame (50ms ≈ 20 FPS)
